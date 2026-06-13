@@ -1,0 +1,13 @@
+{
+  "name": "site-viewer-proxy",
+  "version": "1.0.0",
+  "description": "iframe 없이 다른 웹사이트를 띄우는 Node.js 프록시 서버 프로젝트",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "express": "^4.18.2"
+  }
+}

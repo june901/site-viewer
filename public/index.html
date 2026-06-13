@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iframe 없는 사이트 뷰어 (Proxy 방식)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+        p.desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .search-container {
+            display: flex;
+            gap: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #007bff;
+        }
+        button {
+            padding: 12px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* 콘텐츠가 렌더링될 메인 영역 */
+        #displayArea {
+            flex: 1;
+            width: 100%;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: white;
+            overflow: auto;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        .placeholder-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #aaa;
+            font-size: 15px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            color: #007bff;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        /* 로딩 스피너 애니메이션 효과 */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Web Site Viewer (No-iframe Proxy)</h1>
+        <p class="desc">HTML 개발자를 위한 Proxy 기반 우회 사이트 뷰어입니다. 서버가 대신 HTML을 읽어와 화면에 주입합니다.</p>
+    </header>
+    
+    <div class="search-container">
+        <input type="text" id="urlInput" value="https://example.com" placeholder="원하는 사이트 주소를 입력하세요 (예: daum.net, example.com)">
+        <button onclick="loadSite()">사이트 가져오기</button>
+    </div>
+
+    <!-- 결과가 출력되는 곳 -->
+    <div id="displayArea">
+        <div class="placeholder-text" id="placeholder">
+            <p>상단 주소창에 불러올 사이트 주소를 입력하고 버튼을 눌러주세요.</p>
+            <p style="font-size:13px; color:#ccc; margin-top:5px;">(※ 일부 보안 정책이 극도로 까다로운 사이트는 깨짐 현상이 있을 수 있습니다.)</p>
+        </div>
+    </div>
+
+    <script>
+        async function loadSite() {
+            const displayArea = document.getElementById('displayArea');
+            let url = document.getElementById('urlInput').value.trim();
+            
+            if (!url) {
+                alert('주소를 입력해주세요.');
+                return;
+            }
+
+            // 로딩 스피너 표시
+            displayArea.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>서버가 웹페이지 데이터를 수집하고 있습니다...</div>
+                </div>
+            `;
+
+            try {
+                // 내 Node.js 서버의 프록시 API 호출 (URL 인코딩 처리)
+                const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+                
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                const htmlContent = await response.text();
+                
+                // 가져온 HTML 코드를 div 내부 요소로 주입
+                displayArea.innerHTML = htmlContent;
+
+            } catch (error) {
+                displayArea.innerHTML = `
+                    <div style="padding: 30px; color: #dc3545; line-height: 1.6; font-weight: 500;">
+                        <h3>⚠️ 오류 발생</h3>
+                        <p style="margin-top: 10px;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 엔터키 입력 시 즉시 실행되도록 편의 기능 추가
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loadSite();
+            }
+        });
+    </script>
+
+</body>
+</html>
