@@ -2,10 +2,17 @@ const express = require('express');
 const axios = require('axios');
 const path = require('path');
 const app = express();
-const PORT = 3000;
+
+// ⭐️ [수정] Render가 제공하는 포트를 사용하고, 없으면 3000번을 사용하도록 변경
+const PORT = process.env.PORT || 3000;
 
 // 정적 파일(HTML, CSS, JS)을 제공하기 위한 폴더 설정
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ⭐️ [추가] 사용자가 메인 주소로 들어왔을 때 index.html을 강제로 안전하게 열어줌
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // 핵심 프록시 API: 프론트엔드에서 요청한 URL의 HTML을 대신 가져옴
 app.get('/api/proxy', async (req, res) => {
@@ -34,7 +41,6 @@ app.get('/api/proxy', async (req, res) => {
         let html = response.data;
 
         // [간단한 주소 보정 작업]
-        // 상대 경로로 되어 있는 이미지, CSS, JS 파일들이 내 서버가 아닌 원래 사이트에서 고쳐지도록 일부 절대경로 변환
         try {
             const urlObj = new URL(targetUrl);
             const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
@@ -55,9 +61,7 @@ app.get('/api/proxy', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`====================================================`);
-    // 점검용 로그 출력
     console.log(`  [사이트 뷰어 서버 구동 완료]`);
-    console.log(`  주소창에 다음 링크를 입력하여 접속하세요:`);
-    console.log(`  http://localhost:${PORT}`);
+    console.log(`  포트 번호: ${PORT}`);
     console.log(`====================================================`);
 });
